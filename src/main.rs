@@ -4,7 +4,7 @@
 
 
 mod cli;
-use crate::cli::{CliArgs, DEFAULT_TRACE_LEVEL, GetArgs, Verbosity};
+use crate::cli::*;
 
 
 use tracing::{debug, error, info, trace, warn};
@@ -20,11 +20,14 @@ fn main() {
         .init();
     trace!("Logging & Tracing initialized");
     // Get the cli args
-    let cli_args = CliArgs::get_args();
+    let args = CliArgs::get_args();
     // Set the tracing verbosity level from the cli args
-    reload_handle.modify(|filter| *filter = cli_args.get_verbosity()).ok();
-    trace!("The verbosity level received in cli_args is: {:?}", cli_args.get_verbosity());
+    reload_handle.modify(|filter| *filter = args.get_verbosity()).ok();
+    trace!("The verbosity level received in cli_args is: {:?}", args.get_verbosity());
     //
-    //
-    print!("Hello")
+    match args.command {
+        Commands::Add { path } => {
+            info!("Adding {path:?}");
+        }
+    }
 }

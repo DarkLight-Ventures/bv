@@ -6,9 +6,10 @@
 #![warn(missing_docs)]
 
 
-use clap::Parser;
+use clap::{Args, Parser, Subcommand, ValueEnum};
 use clap_verbosity_flag::{InfoLevel, Verbosity as ClapVerbosity};
 use std::env;
+use std::path::PathBuf;
 use tracing::log;
 use tracing_subscriber::filter;
 
@@ -35,69 +36,89 @@ pub const DEFAULT_TRACE_LEVEL: filter::LevelFilter = filter::LevelFilter::INFO;
 /// and is used to parse the command line arguments.
 /// By default it includes the verbosity flag, which gives `-v` and `-q` flags.
 #[derive(Debug, Parser)]
-#[clap(author, version, about, long_about = None)]
+#[command(name = "bv")]
+#[command(about = "A version incrementing tool", long_about = None)]
+#[command(author = "Kelsey Blackwell & the Darklight Ventures team")]
+
 pub struct CliArgs {
     #[clap(flatten)]
     verbosity: ClapVerbosity<InfoLevel>,
+
+    #[command(subcommand)]
+    pub command: Commands,
 
     #[clap(
         default_value = "bv.yml",
         help = "The config file locationM",
         long,
     )]
-    config_file: Option<String>,
+    pub config_file: Option<String>,
 
     #[clap(
         help = "The current version",
         long,
     )]
-    current_version: Option<String>,
+    pub current_version: Option<String>,
 
     #[clap(
         help = "The commit message for auto VCS",
         long,
     )]
-    message: Option<String>,
+    pub message: Option<String>,
 
     #[clap(
         help = "The new version number",
         long,
     )]
-    new_version: Option<String>,
+    pub new_version: Option<String>,
 
     #[clap(
         help = "",
         long,
     )]
-    parse: Option<String>,
+    pub parse: Option<String>,
 
     #[clap(
         help = "The version string to replace with",
         long,
     )]
-    replace: Option<String>,
+    pub replace: Option<String>,
 
     #[clap(
         help = "The version string to search for",
         long
     )]
-    search: Option<String>,
+    pub search: Option<String>,
 
     #[clap(long)]
-    serialize: Option<String>,
+    pub serialize: Option<String>,
 
     #[clap(
         help = "The name of the VCS tag",
         long,
     )]
-    tag_name: Option<String>,
+    pub tag_name: Option<String>,
 
     #[clap(
         help = "The message to tag the commit with",
         long,
     )]
-    tag_message: Option<String>    
+    pub tag_message: Option<String>    
 }
+
+
+#[derive(Debug, Subcommand)]
+pub enum Commands {
+    /// Add a component/directory to the config
+    Add {
+        /// The path(s) of the component
+        #[arg(required = true)]
+        path: Vec<PathBuf>,
+    },
+}
+
+
+
 
 // Implementations
 impl GetArgs for CliArgs {
