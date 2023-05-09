@@ -115,6 +115,7 @@ pub enum Commands {
         #[arg(required = true)]
         path: Vec<PathBuf>,
     },
+    AutoAdd,
 }
 
 

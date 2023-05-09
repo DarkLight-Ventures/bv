@@ -28,6 +28,9 @@ fn main() {
     match args.command {
         Commands::Add { path } => {
             info!("Adding {path:?}");
+        },
+        Commands::AutoAdd => {
+            info!("Trying to autoadd");
         }
     }
 }
