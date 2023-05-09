@@ -14,12 +14,12 @@ pub trait ConfigWriter {
 }
 
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, PartialEq, Serialize)]
 pub struct BvConfig {
     pub modules: Option<Vec<ModuleConfig>>,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, PartialEq, Serialize)]
 pub struct ModuleConfig {
     pub name: Option<String>,
     pub current_version: Option<String>,
@@ -27,14 +27,18 @@ pub struct ModuleConfig {
 
 
 impl ConfigLoader for BvConfig {
-    fn load_config(config_file: &PathBuf) ->  Self {
-        Self{
-            modules: None,
+    fn load_config(cf: &PathBuf) ->  Self {
+        if let f = std::fs::File::open(cf) {
+            serde_yaml::from_reader(f).expect("Could not read values.")
+        } else {
+            Self{
+                modules: None,
+            }
         }
     }
 }
 
 impl ConfigWriter for BvConfig {
-    fn write_config(self: &Self, config_file: &PathBuf) {
+    fn write_config(self: &Self, cf: &PathBuf) {
     }
 }
