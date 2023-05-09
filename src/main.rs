@@ -27,8 +27,9 @@ fn main() {
     // Set the tracing verbosity level from the cli args
     reload_handle.modify(|filter| *filter = args.get_verbosity()).ok();
     trace!("The verbosity level received in cli_args is: {:?}", args.get_verbosity());
-    //
+    // Get a configuration object
     let current_config = BvConfig::load_config(&args.config_file);
+    //
     match args.command {
         Commands::Add { path } => {
             info!("Adding {path:?}");
@@ -37,6 +38,8 @@ fn main() {
             info!("Trying to autoadd");
         }
     }
+    // Write the config out
+    current_config.write_config(&args.config_file);
 }
 
 

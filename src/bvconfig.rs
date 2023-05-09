@@ -2,15 +2,19 @@
  *  Copyright (c) 2023 Darklight Ventures
  */
 
+use anyhow::Result;
 use serde::{Deserialize, Serialize};
+use std::fs::File;
+use std::io::{Read, Write};
 use std::path::PathBuf;
+use tracing::{warn};
 
 pub trait ConfigLoader {
     fn load_config(config_file: &PathBuf) -> Self;
 }
 
 pub trait ConfigWriter {
-    fn write_config(self: &Self, config_file: &PathBuf);
+    fn write_config(self: &Self, config_file: &PathBuf) -> Result<()>;
 }
 
 
@@ -26,19 +30,42 @@ pub struct ModuleConfig {
 }
 
 
+impl Default for BvConfig {
+    fn default() -> Self {
+        Self{
+            modules: None
+        }
+    }
+}
+
+
 impl ConfigLoader for BvConfig {
     fn load_config(cf: &PathBuf) ->  Self {
-        if let f = std::fs::File::open(cf) {
-            serde_yaml::from_reader(f).expect("Could not read values.")
-        } else {
-            Self{
-                modules: None,
-            }
+        let mut f = match File::open(cf) {
+            Ok(f) => f,
+            Err(_) => {
+                warn!("No config file found, using defualt configuration");
+                return BvConfig::default()   // Return default Config if file does not exist
+            },
+        };
+    
+        let mut contents = String::new();
+        match f.read_to_string(&mut contents) {
+            Ok(_) => (),
+            Err(_) => return BvConfig::default(),  // Return default Config if reading fails
+        };
+    
+        match serde_yaml::from_str(&contents) {
+            Ok(config) => config,
+            Err(_) => BvConfig::default(),  // Return default Config if deserialization fails
         }
     }
 }
 
 impl ConfigWriter for BvConfig {
-    fn write_config(self: &Self, cf: &PathBuf) {
+    fn write_config(self: &Self, cf: &PathBuf) -> Result<()> {
+        let yaml = serde_yaml::to_string(self).unwrap();
+        let mut file = File::create(cf)?;
+        Ok(file.write_all(yaml.as_bytes())?)
     }
 }
