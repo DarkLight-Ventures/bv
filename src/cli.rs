@@ -52,7 +52,7 @@ pub struct CliArgs {
         help = "The config file locationM",
         long,
     )]
-    pub config_file: Option<String>,
+    pub config_file: PathBuf,
 
     #[clap(
         help = "The current version",

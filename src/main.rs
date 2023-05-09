@@ -2,11 +2,14 @@
  *  Copyright (c) 2023 Darklight Ventures
  */
 
+mod bvconfig;
+use crate::bvconfig::*;
 
 mod cli;
 use crate::cli::*;
 
 
+use std::path::PathBuf;
 use tracing::{debug, error, info, trace, warn};
 use tracing_subscriber::{fmt, reload, prelude::*};
 
@@ -25,6 +28,7 @@ fn main() {
     reload_handle.modify(|filter| *filter = args.get_verbosity()).ok();
     trace!("The verbosity level received in cli_args is: {:?}", args.get_verbosity());
     //
+    let current_config = BvConfig::load_config(&args.config_file);
     match args.command {
         Commands::Add { path } => {
             info!("Adding {path:?}");
@@ -34,3 +38,6 @@ fn main() {
         }
     }
 }
+
+
+
