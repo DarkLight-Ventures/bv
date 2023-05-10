@@ -8,6 +8,9 @@ use crate::bvconfig::*;
 mod cli;
 use crate::cli::*;
 
+mod modules;
+use crate::modules::*;
+
 
 use std::path::PathBuf;
 use tracing::{debug, error, info, trace, warn};
@@ -30,13 +33,9 @@ fn main() {
     // Get a configuration object
     let current_config = BvConfig::load_config(&args.config_file);
     //
-    match args.command {
-        Commands::Add { path } => {
-            info!("Adding {path:?}");
-        },
-        Commands::AutoAdd => {
-            info!("Trying to autoadd");
-        }
+    let matched = match args.command {
+        Commands::Add { path } => add_module(&args),
+        Commands::AutoAdd =>  auto_add_modules(&args),
     }
     // Write the config out
     current_config.write_config(&args.config_file);

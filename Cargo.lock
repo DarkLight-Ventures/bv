@@ -124,6 +124,8 @@ dependencies = [
  "clap",
  "clap-verbosity-flag",
  "grep",
+ "grep-regex",
+ "grep-searcher",
  "serde",
  "serde_yaml",
  "tracing",

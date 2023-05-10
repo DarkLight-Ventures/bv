@@ -11,37 +11,57 @@ use std::io::{Read, Write};
 use std::path::PathBuf;
 use tracing::{warn};
 
-pub trait ConfigLoader {
+/// The File IO trait
+/// This defines the functions used to read and write BV config files
+pub trait ConfigFileIO {
+    /// This will return a default/empty config should the specified config 
+    /// file not exist, which can then be modified and written to disk.
+    /// Usage:
+    /// config: BvConfig = BvConfig.load_config("FileName");
     fn load_config(config_file: &PathBuf) -> Self;
-}
 
-pub trait ConfigWriter {
+    /// This will write the config to disk, overwriting any existing config
+    /// Usage:
+    /// bvconfig.write_config("FileName");
     fn write_config(self: &Self, config_file: &PathBuf) -> Result<()>;
 }
 
 
 #[derive(Debug, Deserialize, PartialEq, Serialize)]
 pub struct BvConfig {
+    pub auto_commit: Option<Bool>,
+    pub auto_tag: Option<Bool>,
     pub modules: Option<Vec<ModuleConfig>>,
+    pub vcs: Option<SupportedVCS>,
 }
 
 #[derive(Debug, Deserialize, PartialEq, Serialize)]
 pub struct ModuleConfig {
-    pub name: Option<String>,
-    pub current_version: Option<String>,
+    pub auto_commit: Option<Bool>,
+    pub auto_tag: Option<Bool>,
+    pub current_version: Option<VersionScheme>,
     pub files: Option<Vec<ModuleFile>>,
+    pub name: Option<String>,
 }
 
 #[derive(Debug, Deserialize, PartialEq, Serialize)]
 pub struct ModuleFile {
     pub path: PathBuf,
-    pub replace_pattern: Option<String>,
-    pub search_pattern: Option<String>,
-    pub version: FileVersion,
+    #[serde(default, skip_serializing_if = "is_default_regex_patterns")]
+    pub regex: Option<RegexPatterns>,
+    pub current_version: VersionScheme,
 }
 
 #[derive(Debug, Deserialize, PartialEq, Serialize)]
-pub enum FileVersion {
+pub struct RegexPatterns {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub replace_pattern: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub search_pattern: Option<String>,
+}
+
+#[derive(Debug, Deserialize, PartialEq, Serialize)]
+pub enum VersionScheme {
     Semantic(SemanticVersion),
 }
 
@@ -53,6 +73,56 @@ pub struct SemanticVersion {
     pre_release: Option<String>,
     build: Option<String>,
 }
+
+pub enum SupportedVCS {
+    Git,
+}
+
+
+impl Default for BvConfig {
+    fn default() -> Self {
+        Self{
+            modules: None
+        }
+    }
+}
+
+impl Default for RegexPatterns {
+    fn default() -> Self {
+        Self{}
+    }
+}
+
+
+impl ConfigFileIO for BvConfig {
+    fn load_config(cf: &PathBuf) ->  Self {
+        let mut f = match File::open(cf) {
+            Ok(f) => f,
+            Err(_) => {
+                warn!("No config file found, using default configuration");
+                return BvConfig::default()   // Return default Config if file does not exist
+            },
+        };
+    
+        let mut contents = String::new();
+        match f.read_to_string(&mut contents) {
+            Ok(_) => (),
+            Err(_) => return BvConfig::default(),  // Return default Config if reading fails
+        };
+    
+        match serde_yaml::from_str(&contents) {
+            Ok(config) => config,
+            Err(_) => BvConfig::default(),  // Return default Config if deserialization fails
+        }
+    }
+
+    fn write_config(self: &Self, cf: &PathBuf) -> Result<()> {
+        let yaml = serde_yaml::to_string(self).unwrap();
+        let mut file = File::create(cf)?;
+        Ok(file.write_all(yaml.as_bytes())?)
+    }
+}
+
 
 impl<'de> Deserialize<'de> for SemanticVersion {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
@@ -105,42 +175,9 @@ impl Serialize for SemanticVersion {
     }
 }
 
-impl Default for BvConfig {
-    fn default() -> Self {
-        Self{
-            modules: None
-        }
-    }
+
+fn is_default_regex_patterns(data: &RegexPatterns) -> bool {
+    *data == RegexPatterns::default()
 }
 
 
-impl ConfigLoader for BvConfig {
-    fn load_config(cf: &PathBuf) ->  Self {
-        let mut f = match File::open(cf) {
-            Ok(f) => f,
-            Err(_) => {
-                warn!("No config file found, using defualt configuration");
-                return BvConfig::default()   // Return default Config if file does not exist
-            },
-        };
-    
-        let mut contents = String::new();
-        match f.read_to_string(&mut contents) {
-            Ok(_) => (),
-            Err(_) => return BvConfig::default(),  // Return default Config if reading fails
-        };
-    
-        match serde_yaml::from_str(&contents) {
-            Ok(config) => config,
-            Err(_) => BvConfig::default(),  // Return default Config if deserialization fails
-        }
-    }
-}
-
-impl ConfigWriter for BvConfig {
-    fn write_config(self: &Self, cf: &PathBuf) -> Result<()> {
-        let yaml = serde_yaml::to_string(self).unwrap();
-        let mut file = File::create(cf)?;
-        Ok(file.write_all(yaml.as_bytes())?)
-    }
-}
